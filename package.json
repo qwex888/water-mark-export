@@ -1,0 +1,57 @@
+{
+  "_from": "water-mark-export",
+  "_id": "water-mark-export@0.0.3",
+  "_inBundle": false,
+  "_integrity": "sha512-+Ulh6kc9fAwjMSYTq2fPPDKoNHVD87QTKREmhThKB0LnTadOWfvhWzS6ZlMTFwf7Cm00ZcQIpHUUmQDU6sim3Q==",
+  "_location": "/water-mark-export",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "water-mark-export",
+    "name": "water-mark-export",
+    "escapedName": "water-mark-export",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#DEV:/",
+    "#USER"
+  ],
+  "_resolved": "https://registry.npmjs.org/water-mark-export/-/water-mark-export-0.0.3.tgz",
+  "_shasum": "f0185575312c1b9c8849377f282096b83c27fe1b",
+  "_spec": "water-mark-export",
+  "_where": "/Users/lx/code/water-mask",
+  "author": {
+    "name": "yocat"
+  },
+  "bugs": {
+    "url": "https://github.com/qwex888/water-mark-export/issues"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "html2canvas": "^1.4.1"
+  },
+  "deprecated": false,
+  "description": "页面canvas水印生成及导出图片功能",
+  "homepage": "https://github.com/qwex888/water-mark-export#readme",
+  "keywords": [
+    "canvas",
+    "waterMark"
+  ],
+  "license": "ISC",
+  "main": "index.js",
+  "module": "index.js",
+  "name": "water-mark-export",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qwex888/water-mark-export.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "types": "index.d.ts",
+  "version": "0.0.3"
+}
