@@ -14,6 +14,8 @@ let qualityO = 1
  * @param Object.exportExt 定义导出图片类型后缀, 可选
  * @param Object.quality 定义导出图片清晰度, 可选,范围（0-1）
  * @param Object.format 定义预览图片格式, 可选（base64或blob）
+ * @param Object.useCORS 元素包含网络图片，是否支持跨域,默认，true
+ * @param Object.drawManually 手动绘制的dom元素
  * @method toImage(element) 通过html2canvas转换为canvas
  * @method addWaterMark 添加水印
  * @method downloadImg 下载图片
@@ -32,18 +34,19 @@ class TransHtmlToImage {
   constructor({
     element,
     showWaterMark = false,
-    waterMark,
+    waterMark = undefined,
     autoDownload = false,
-    fileName,
-    exportExt,
-    quality,
-    format
+    fileName = undefined,
+    exportExt = 'png',
+    quality = 1,
+    format = 'base64',
+    useCORS = true,
   }) {
     this.element = element;
     this.canvas = null;
     this.imgUrl = "";
     this.autoDownload = autoDownload;
-    this.showWaterMark = showWaterMark ? showWaterMark : false;
+    this.showWaterMark = showWaterMark;
     this.waterMark = {
       textAlign: "center",
       textBaseline: "middle",
@@ -57,12 +60,13 @@ class TransHtmlToImage {
       alpha: 0.3,
       ...(typeof waterMark === "object" ? waterMark : {}),
     };
-    this.exportType = exportExt || 'jpeg'
+    this.exportType = exportExt
     this.fileName = fileName ?
       fileName + '.' + this.exportType :
       new Date().getTime() + "." + this.exportType
     this.quality = typeof quality === 'number' && quality <= 1 && quality > 0 ? quality : 1
-    this.format = format || 'base64'
+    this.format = format
+    this.useCORS = useCORS
     qualityO = this.quality
     exportTypeO = this.exportType
   }
@@ -71,9 +75,9 @@ class TransHtmlToImage {
       this.element = element;
     }
     const config = {
-      backgroundColor: "#ffffff",
-      // allowTaint: true,
-      // useCORS: true,
+      backgroundColor: this.exportType === 'png' ? null : "#ffffff",
+      allowTaint: this.useCORS,
+      useCORS: this.useCORS,
     };
     if (this.waterMark.width)
       (config.scale = 1),
@@ -171,6 +175,23 @@ class TransHtmlToImage {
     this.imgUrl = this.getImgUrl()
     if (this.autoDownload) this.downloadImg();
     return this.imgUrl;
+  }
+
+  async getTransparentChannel(){
+    if (!this.canvas)
+      return new Error('Please run the "toImage" function first !');
+    let ctx = this.canvas.getContext('2d')
+    let imageData = ctx.getImageData(0, 0, this.canvas.width, this.canvas.height)
+    const data = imageData.data
+    for(let i = 0; i < data.length; i+=4) {
+      // 得到 RGBA 通道的值
+      let r = data[i]
+        , g = data[i+1]
+        , b = data[i+2]
+      if([r,g,b].every(v => v < 256 && v > 245)) data[i+3] = 0
+    }
+    ctx.putImageData(imageData, 0, 0)
+    return this.getImgUrl()
   }
 }
 

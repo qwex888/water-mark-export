@@ -84,6 +84,7 @@ const imgUrl = transf.getImgUrl()
 参数名称|是否必填|说明|类型|默认
 :-|:-:|:-|:-:|:-:
 element|必填|指定要渲染的元素|ref、event|
+useCORS|可选|元素包含网络图片，是否支持跨域|Boolean|true
 showWaterMark|可选|生成图片是否显示水印|Boolean|false
 autoDownload|可选|是否生成图片后自动下载|Boolean|false
 waterMark|可选|水印定义选项|Object|详见下方定义
@@ -103,7 +104,7 @@ toImage|通过html2canvas转换为canvas|element`可选`|canvas
 addWaterMark|手动执行触发水印添加函数| |canvas
 downloadImg|手动执行触发图片下载| |imgUrl
 getImgUrl|获取可用于预览的图片链接| |imgUrl
-setWaterMark|手动设置水印样式|WaterMarkOptions|imgUrl
+setWaterMark|手动设置水印样式|`WaterMarkOptions` or `string`|imgUrl
 
 ### 水印配置项
 
