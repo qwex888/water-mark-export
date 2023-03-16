@@ -1,6 +1,6 @@
 {
   "_from": "water-mark-export",
-  "_id": "water-mark-export@0.0.3",
+  "_id": "water-mark-export@0.0.5",
   "_inBundle": false,
   "_integrity": "sha512-+Ulh6kc9fAwjMSYTq2fPPDKoNHVD87QTKREmhThKB0LnTadOWfvhWzS6ZlMTFwf7Cm00ZcQIpHUUmQDU6sim3Q==",
   "_location": "/water-mark-export",
@@ -53,5 +53,5 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "types": "index.d.ts",
-  "version": "0.0.3"
+  "version": "0.0.5"
 }
