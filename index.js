@@ -14,8 +14,6 @@ let qualityO = 1
  * @param Object.exportExt 定义导出图片类型后缀, 可选
  * @param Object.quality 定义导出图片清晰度, 可选,范围（0-1）
  * @param Object.format 定义预览图片格式, 可选（base64或blob）
- * @param Object.useCORS 元素包含网络图片，是否支持跨域,默认，true
- * @param Object.drawManually 手动绘制的dom元素
  * @method toImage(element) 通过html2canvas转换为canvas
  * @method addWaterMark 添加水印
  * @method downloadImg 下载图片
@@ -41,8 +39,17 @@ class TransHtmlToImage {
     quality = 1,
     format = 'base64',
     useCORS = true,
+    drawManually = {
+      dom: undefined,
+    }
   }) {
     this.element = element;
+    this.drawManually = {
+      dom: undefined,
+      width: 200,
+      height: 200,
+      ...drawManually
+    }
     this.canvas = null;
     this.imgUrl = "";
     this.autoDownload = autoDownload;
@@ -69,11 +76,69 @@ class TransHtmlToImage {
     this.useCORS = useCORS
     qualityO = this.quality
     exportTypeO = this.exportType
+    this.drawRunning = ''
+    this.textCtx = null
+    this.addListen()
   }
-  async toImage(element) {
-    if (element !== undefined) {
-      this.element = element;
+  addListen(drawManually){
+    const dom = drawManually ? drawManually : this.drawManually.dom
+    const curPcClinet = isPc()
+    if(isElement(dom)){
+      const canvasEl = this.getCanvasElement() || document.createElement('canvas')
+      setTimeout(() => {
+        canvasEl.setAttribute('height', dom.offsetHeight + 'px' || dom.style.height + 'px' || 0+'px')
+        canvasEl.setAttribute('width', dom.offsetWidth + 'px' || dom.style.height + 'px' || 0+'px')
+        dom.appendChild(canvasEl)
+        const ctx = canvasEl.getContext('2d')
+        canvasEl.addEventListener(curPcClinet ?'mousedown' : 'touchstart', (e) => {
+          e.preventDefault();
+          this.drawRunning = 'draw'
+          let offsety = canvasEl.offsetTop;
+          let offsetx = canvasEl.offsetLeft;
+          let px = curPcClinet ? e.pageX : e.targetTouches[0].pageX
+          let py = curPcClinet ? e.pageY : e.targetTouches[0].pageY
+          let x = px - offsetx;
+          let y = py - offsety;
+          ctx.beginPath();
+          ctx.moveTo(x,y);
+        })
+        canvasEl.addEventListener(curPcClinet ? 'mousemove' : 'touchmove', (e) => {
+          e.preventDefault();
+          if(this.drawRunning == "draw"){
+            let offsety = canvasEl.offsetTop;
+            let offsetx = canvasEl.offsetLeft;
+            let px = curPcClinet ? e.pageX : e.targetTouches[0].pageX
+            let py = curPcClinet ? e.pageY : e.targetTouches[0].pageY
+            let x = px - offsetx;
+            let y = py - offsety;
+            ctx.lineTo(x,y);
+            ctx.lineCap = 'round'
+            ctx.lineJoin = 'round'
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = "#ff4444";
+            ctx.stroke();
+          }else{
+            ctx.moveTo(0, 0)
+          }
+        })
+        canvasEl.addEventListener(curPcClinet ? 'mouseup' : 'touchend', (e) => {
+          e.preventDefault();
+          this.drawRunning = ''
+          ctx.moveTo(0, 0)
+        })
+        canvasEl.addEventListener('mouseover', (e) => {
+          this.drawRunning = ''
+          ctx.moveTo(0, 0)
+        })
+      }, 0)
     }
+  }
+  async saveDraw(){
+    await this.toImage(this.element)
+    await this.addWaterMark()
+  }
+
+  async toImage(element) {
     const config = {
       backgroundColor: this.exportType === 'png' ? null : "#ffffff",
       allowTaint: this.useCORS,
@@ -84,7 +149,7 @@ class TransHtmlToImage {
       (config.width = config.windowWidth = this.waterMark.width);
     if (this.waterMark.height)
       config.height = config.windowHeight = this.waterMark.height;
-    this.canvas = await html2canvas(this.element, config);
+    this.canvas = await html2canvas(element, config);
     return this.canvas;
   }
   addWaterMark() {
@@ -92,6 +157,7 @@ class TransHtmlToImage {
       if (!this.canvas) reject('Please run the "toImage" function first !');
       if (!this.waterMark)
         reject("Please define a second watermark parameter !");
+
       const ctx = this.canvas.getContext("2d");
       ctx.textAlign = this.waterMark.textAlign;
       ctx.textBaseline = this.waterMark.textBaseline;
@@ -101,33 +167,71 @@ class TransHtmlToImage {
         this.canvas.width :
         this.canvas.height;
       let left = -nc / 2;
-      // console.log(this.canvas.width,this.canvas.height,"canvas: width and height");
       let top = -nc / 2;
-      const textWidth = ctx.measureText(this.waterMark.content).width;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.translate(
-        textWidth + 0.5 * this.canvas.width,
-        40 + 0.5 * this.canvas.height
-      );
-      ctx.rotate(((this.waterMark.rotate || 45) * Math.PI) / 180);
-      for (var i = 0; i < (this.waterMark.numbers || 500); i++) {
-        ctx.fillStyle = hexToRgba(
-          this.waterMark.fillStyle,
-          this.waterMark.alpha
-        );
-        if (i == 0) {
-          //
-        } else if (left >= nc) {
-          left = -nc / 2;
-          top += this.waterMark.spaceY || 200;
-        } else {
-          if (typeof this.waterMark.spaceX == 'number') left += textWidth + this.waterMark.spaceX;
+      if(isElement(this.drawManually.dom)){
+        const textCanvas = this.getCanvasElement()
+        if(!textCanvas.width){
+          resolve(this.canvas);
+          return
         }
-        // console.log(left, top);
-        ctx.fillText(this.waterMark.content, left, top);
+        // 把手绘水印转为图片更改透明度然后覆盖到html上后转为canvas
+        const textImg = new Image()
+        textImg.src = textCanvas.toDataURL(`image/png}`, 0.9);
+        textImg.style.opacity = this.waterMark.alpha
+        textImg.style.position = 'absolute'
+        textImg.style.zIndex = 2
+        textImg.width = this.drawManually.width
+        textImg.height = this.drawManually.height
+        textImg.style.left = (this.element.width || this.element.offsetWidth) / 2 - (textImg.width / 2) + 'px'
+        textImg.style.top = (this.element.height || this.element.offsetHeight) / 2 - (textImg.height / 2) + 'px'
+        const copyEl = this.element.cloneNode(true)
+        copyEl.id+= "copy";
+        const imgParent = document.createElement('div')
+        imgParent.style.position = 'fixed'
+        imgParent.style.top = '-999em'
+        imgParent.style.left = '-999em'
+        imgParent.appendChild(copyEl)
+        imgParent.appendChild(textImg)
+        document.body.appendChild(imgParent)
+        this.toImage(imgParent).then((canvas) => {
+          setTimeout(() => {
+            document.body.removeChild(imgParent)
+          }, 2000)
+          resolve(canvas);
+        })
+      }else{
+        const textWidth = ctx.measureText(this.waterMark.content).width;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.translate(
+          textWidth + 0.5 * this.canvas.width,
+          40 + 0.5 * this.canvas.height
+        );
+        ctx.rotate(((this.waterMark.rotate || 45) * Math.PI) / 180);
+        for (var i = 0; i < (this.waterMark.numbers || 500); i++) {
+          ctx.fillStyle = hexToRgba(
+            this.waterMark.fillStyle,
+            this.waterMark.alpha
+          );
+          if (i == 0) {
+            //
+          } else if (left >= nc) {
+            left = -nc / 2;
+            top += this.waterMark.spaceY || 200;
+          } else {
+            if (typeof this.waterMark.spaceX == 'number') left += textWidth + this.waterMark.spaceX;
+          }
+          ctx.fillText(this.waterMark.content, left, top);
+        }
+        resolve(this.canvas);
       }
-      resolve(this.canvas);
     });
+  }
+  resetDraw(){
+    if(!!this.drawManually.dom && isElement(this.drawManually.dom)){
+      const textCanvas = this.getCanvasElement()
+      const ctx = textCanvas.getContext('2d')
+      ctx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+    }
   }
   downloadImg() {
     if (!this.canvas) {
@@ -143,7 +247,8 @@ class TransHtmlToImage {
   }
 
   async callOfTheGodDragon() {
-    await this.toImage();
+    this.imgUrl = ''
+    await this.toImage(this.element);
     if (this.showWaterMark) await this.addWaterMark();
     if(this.format === 'base64'){
       // 转base64
@@ -162,7 +267,7 @@ class TransHtmlToImage {
     type,
     value
   ) {
-    await this.toImage();
+    await this.toImage(this.element);
     if (typeof type === "string" && type !== "") {
       this.waterMark[type] = value;
     } else if (Object.keys(type).length && typeof type == "object") {
@@ -176,7 +281,6 @@ class TransHtmlToImage {
     if (this.autoDownload) this.downloadImg();
     return this.imgUrl;
   }
-
   async getTransparentChannel(){
     if (!this.canvas)
       return new Error('Please run the "toImage" function first !');
@@ -192,6 +296,10 @@ class TransHtmlToImage {
     }
     ctx.putImageData(imageData, 0, 0)
     return this.getImgUrl()
+  }
+
+  getCanvasElement(){
+    return [].slice.call(this.drawManually.dom.children).find(e => e.nodeName === 'CANVAS' && e.nodeType === 1)
   }
 }
 
@@ -225,6 +333,9 @@ function base64Img2Blob(code) {
     type: contentType
   });
 }
+function isElement (obj) {
+  return !!(obj && typeof obj.nodeName === 'string' && typeof obj.nodeType === 'number')
+}
 
 function downloadFile(canvas, fileName) {
   var aLink = document.createElement("a");
@@ -237,5 +348,14 @@ function downloadFile(canvas, fileName) {
   aLink.dispatchEvent(evt);
   return aLink.href
 }
-
+function isPc () {
+  const u = typeof navigator !== 'undefined' ? navigator.userAgent : 'other';
+  if (u.match(/compatible/i) || u.match(/Windows/i) || u.match(/Macintosh/i) || u.match(/MacIntel/i)) {
+    return true
+  } else if (u.match(/iphone/i) || u.match(/Ipad/i) || u.match(/android/i)) {
+    return false
+  } else {
+    return true
+  }
+}
 export default TransHtmlToImage;

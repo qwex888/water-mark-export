@@ -77,6 +77,38 @@ await transf.setWaterMark(waterMarkOptions)
 const imgUrl = transf.getImgUrl()
 ```
 
+### 手动绘制水印使用
+
+```html
+<div id="trans"></div>
+<button @click="trans.addListen()">打开</button>
+<button @click="trans.resetDraw()">清空</button>
+<button @click="trans.callOfTheGodDragon()">更新</button>
+<div id="drawCanvas"></div>
+```
+
+```js
+trans.value = new TransHtmlToImage({
+  element: document.getElementById('trans'),
+  showWaterMark: true,
+  drawManually: {
+    dom: document.getElementById('drawCanvas'),
+  },
+})
+imgUrl.value = await trans.value.callOfTheGodDragon()
+```
+
+给可绘制的区域加样式
+
+```css
+#drawCanvas {
+  margin-left: 150px;
+  width: 540px;
+  height: 540px;
+  border: 2px solid #666666;
+}
+```
+
 ## API
 
 ### Props
@@ -92,6 +124,8 @@ fileName|可选|定义下载图片名称|String|时间戳
 exportExt|可选|定义导出图片类型后缀|jpeg、png|jpeg
 quality|可选|定义导出图片质量，范围（0~1）|Number|1
 format|可选|定义生成的预览图片格式,blob更流畅，base64兼容更好|base64、blob|base64
+useCORS|可选|是否支持包含网络图片的元素跨域，默认开启|Boolean|true
+drawManually|可选|手动绘制水印可选项配置|`DrawManuallyOptions`|
 
 ### Methods
 
@@ -105,8 +139,11 @@ addWaterMark|手动执行触发水印添加函数| |canvas
 downloadImg|手动执行触发图片下载| |imgUrl
 getImgUrl|获取可用于预览的图片链接| |imgUrl
 setWaterMark|手动设置水印样式|`WaterMarkOptions` or `string`|imgUrl
+addListen|手动开启绘制水印的监听| DrawManuallyOptions`可选` |
+saveDraw|保存绘制| |
+resetDraw|清空画布| |
 
-### 水印配置项
+### 水印配置项 - WaterMarkOptions
 
 参数名|说明|类型|默认
 :-|:-|:-:|:-:
@@ -120,3 +157,11 @@ spaceX|水印列间距|Number|200
 spaceY|水印行间距|Number|200
 numbers|水印数量，调整水印的密集度|Number|500
 alpha|水印透明度，范围（0-1）|Number|0.3
+
+### 绘制水印配置项 - DrawManuallyOptions
+
+参数名|说明|类型|默认
+:-|:-|:-:|:-:
+dom|选取的绘制画布元素，必填|HTMLElement|
+width|绘制图形生成水印宽度|Number|200
+height|绘制图形生成水印高度|Number|200

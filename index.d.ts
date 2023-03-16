@@ -10,6 +10,11 @@ interface WaterMarkOptions {
   numbers?: number;
   alpha?: number;
 }
+interface DrawManuallyOptions {
+  dom: HTMLElement;
+  width?: number;
+  height?: number;
+}
 declare class TransHtmlToImage {
   /**
   * 生成图片的目标元素
@@ -51,6 +56,14 @@ declare class TransHtmlToImage {
   * 定义生成的预览图片格式，可选项base64、blob
   */
   format?: 'base64' | 'blob'
+  /**
+  * 是否支持包含网络图片的元素跨域，默认开启
+  */
+  useCORS?: boolean;
+  /**
+  * 绘制水印可选项配置
+  */
+  drawManually?: DrawManuallyOptions
 
   constructor({
     element,
@@ -60,7 +73,9 @@ declare class TransHtmlToImage {
     fileName,
     exportExt,
     quality,
-    format
+    format,
+    useCORS,
+    drawManually
   }: {
     element: HTMLElement;
     showWaterMark?: boolean;
@@ -69,7 +84,9 @@ declare class TransHtmlToImage {
     fileName?: string;
     exportExt?: 'jpeg' | 'png';
     quality?: number;
-    format?: 'base64' | 'blob'
+    format?: 'base64' | 'blob';
+    useCORS?: boolean;
+    drawManually?: DrawManuallyOptions;
   });
   /**
   * 通过html2canvas转换为canvas
@@ -98,6 +115,17 @@ declare class TransHtmlToImage {
     type: "rotate" | "spaceX" | "spaceY" | "fillStyle" | WaterMarkOptions,
     value: string | number | undefined
   ): Function
-
+  /**
+  * 手动开启绘制水印的监听
+  */
+  addListen?(drawManually?: DrawManuallyOptions): void
+  /**
+  * 保存绘制
+  */
+  saveDraw?(): void
+  /**
+  * 清空画布
+  */
+  resetDraw?(): void
 }
 export default TransHtmlToImage;
